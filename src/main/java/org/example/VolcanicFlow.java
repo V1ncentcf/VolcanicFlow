@@ -18,6 +18,7 @@ import org.bukkit.block.BlockFace;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
+import org.bukkit.event.HandlerList;
 import org.bukkit.event.Listener;
 import org.bukkit.metadata.FixedMetadataValue;
 import org.bukkit.scheduler.BukkitScheduler;
@@ -66,12 +67,13 @@ public class VolcanicFlow extends LavaAbility implements AddonAbility {
     public static final String METADATA_KEY_LAVABLOCK = "Vincentcf:/VolcanicFlow://Lava";
     private static final FixedMetadataValue METADATA_VALUE = new FixedMetadataValue(ProjectKorra.plugin,1);
     private static final BlockFace[] BLOCK_FACES = new BlockFace[]{BlockFace.NORTH, BlockFace.EAST, BlockFace.UP, BlockFace.DOWN, BlockFace.SOUTH, BlockFace.WEST};
+    private static Listener listener;
 
 
     public VolcanicFlow(Player player) {
         super(player);
 
-        if (!bPlayer.canBendIgnoreBinds(this)) return;
+        if (bPlayer == null || !bPlayer.canBendIgnoreBinds(this)) return;
 
         cooldown = ConfigManager.getConfig().getLong("ExtraAbilities.Vincentcf.VolcanicFlow.Cooldown");
         range = ConfigManager.getConfig().getInt("ExtraAbilities.Vincentcf.VolcanicFlow.Range");
@@ -102,7 +104,7 @@ public class VolcanicFlow extends LavaAbility implements AddonAbility {
     @Override
     public void progress() {
 
-        if (!bPlayer.canBend(this)) {
+        if (bPlayer == null || !bPlayer.canBend(this)) {
             remove();
             return;
         }
@@ -282,7 +284,12 @@ public class VolcanicFlow extends LavaAbility implements AddonAbility {
         String[] blocksToIgnore = { Material.DIAMOND_ORE.name()};
         ConfigManager.getConfig().addDefault("ExtraAbilities.Vincentcf.VolcanicFlow.ignoredBlocks", blocksToIgnore);
 
-        Listener listener = new VolcanicFlowListener();
+        if (listener != null) {
+            HandlerList.unregisterAll(listener);
+            listener = null;
+        }
+        VolcanicFlowListener.cleanup();
+        listener = new VolcanicFlowListener();
         ProjectKorra.plugin.getServer().getPluginManager().registerEvents(listener, ProjectKorra.plugin);
         ConfigManager.defaultConfig.save();
 
@@ -291,6 +298,11 @@ public class VolcanicFlow extends LavaAbility implements AddonAbility {
 
     @Override
     public void stop() {
+        if (listener != null) {
+            HandlerList.unregisterAll(listener);
+            listener = null;
+        }
+        VolcanicFlowListener.cleanup();
         remove();
     }
 
